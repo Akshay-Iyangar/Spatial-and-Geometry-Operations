@@ -1,0 +1,77 @@
+package edu.asu.cse512;
+
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.FileWriter;
+import java.io.IOException;import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
+import java.net.URI;
+
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
+
+public class FileToCsv {
+	public static Configuration confhadoop = new Configuration();
+	
+	
+public static void fileToCsv(String hdfsInputPath,String hdfsOutputPath)
+{
+	setConfigurationProperties();
+	URI hdfsOutputPathUri = URI.create(hdfsOutputPath);
+	Path pathOutput = new Path(hdfsOutputPathUri);
+	URI hdfsInputPathUri = URI.create(hdfsInputPath);
+	Path pathlocal = new Path(hdfsInputPathUri);
+	
+	
+	try {
+		
+		
+		FileSystem fileInputhadoop = FileSystem.get(hdfsInputPathUri, confhadoop);
+		BufferedReader reader=new BufferedReader(new InputStreamReader(fileInputhadoop.open(pathlocal)));
+		String line=null;
+		
+		FileSystem fileOutputhadoop = FileSystem.get(hdfsOutputPathUri, confhadoop);
+		if(fileOutputhadoop.exists(pathOutput))
+		{
+			deleteExistingFile(hdfsOutputPath);	
+		}
+		
+		BufferedWriter writer =new BufferedWriter(new OutputStreamWriter(fileOutputhadoop.create(pathOutput,true)));
+	
+		while((line = reader.readLine())!=null || (line = reader.readLine())!="")
+		{
+			System.out.println("line"+line);
+			writer.write(line);
+		}
+		
+		
+		
+		
+	//	filehadoop.copyFromLocalFile(pathlocal, pathOutput);
+		
+	} catch (IOException e) {
+		e.printStackTrace();
+	}
+	
+}
+
+public static void deleteExistingFile(String path)
+{
+	setConfigurationProperties();
+	URI hdfsPathUri = URI.create(path);
+	Path uriPath = new Path(hdfsPathUri);
+	try {
+		FileSystem filehadoop = FileSystem.get(hdfsPathUri, confhadoop);
+		filehadoop.delete(uriPath,true);
+	} catch (IOException e) {
+		// TODO Auto-generated catch block
+		e.printStackTrace();
+	}
+}
+public static void setConfigurationProperties()
+{
+	confhadoop.addResource(new Path("/etc/hadoop/conf/core-site.xml"));
+	confhadoop.addResource(new Path("/etc/hadoop/conf/hdfs-site.xml"));
+}
+}

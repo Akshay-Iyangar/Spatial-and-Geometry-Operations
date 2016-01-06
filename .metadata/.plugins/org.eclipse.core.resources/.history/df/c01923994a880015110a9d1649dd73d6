@@ -1,0 +1,50 @@
+package edu.asu.cse512;
+
+import java.io.IOException;
+import java.net.URI;
+
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
+
+public class FileToCsv {
+	public static Configuration confhadoop = new Configuration();
+	public static FileSystem filehadoop;
+	
+public static void fileToCsv(String hdfsInputPath,String hdfsOutputPath)
+{
+	setConfigurationProperties();
+	URI hdfsOutputPathUri = URI.create(hdfsOutputPath);
+	Path pathOutput = new Path(hdfsOutputPathUri);
+	Path pathlocal = new Path(hdfsInputPath);
+	
+	
+	try {
+		filehadoop = FileSystem.get(hdfsOutputPathUri, confhadoop);
+		deleteExistingFile(hdfsOutputPath);
+		filehadoop.copyFromLocalFile(pathlocal, pathOutput);
+		
+	} catch (IOException e) {
+		e.printStackTrace();
+	}
+	
+}
+
+public static void deleteExistingFile(String path)
+{
+	URI hdfsPathUri = URI.create(path);
+	Path uriPath = new Path(hdfsPathUri);
+	try {
+		filehadoop = FileSystem.get(hdfsPathUri, confhadoop);
+		filehadoop.delete(uriPath);
+	} catch (IOException e) {
+		// TODO Auto-generated catch block
+		e.printStackTrace();
+	}
+}
+public static void setConfigurationProperties()
+{
+	confhadoop.addResource(new Path("/etc/hadoop/conf/core-site.xml"));
+	confhadoop.addResource(new Path("/etc/hadoop/conf/hdfs-site.xml"));
+}
+}

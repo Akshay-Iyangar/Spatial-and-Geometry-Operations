@@ -1,0 +1,202 @@
+package edu.asu.cse512;
+
+import java.util.ArrayList;
+
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Iterator;
+import java.util.List;
+
+import org.apache.spark.SparkConf;
+import org.apache.spark.api.java.JavaRDD;
+import org.apache.spark.api.java.JavaSparkContext;
+import org.apache.spark.api.java.function.FlatMapFunction;
+
+public class ClosestPairImpl {
+	public static final long serialVersionUID = 1L;
+
+	public static void sortCoordinates(List<Point> sortedByXCoordinateList, List<Point> sortedByYCoordinateList) {
+		sortXCoordinate(sortedByXCoordinateList);
+		sortYCoordinate(sortedByYCoordinateList);
+	}
+
+	public static void sortXCoordinate(List<Point> sortedByXCoordinateList) {
+		Collections.sort(sortedByXCoordinateList, new Comparator<Point>() {
+
+			public int compare(Point p1, Point p2) {
+				if (p1.getxCoordinate() > p2.getxCoordinate())
+					return 1;
+				if (p1.getxCoordinate() < p2.getxCoordinate())
+					return -1;
+				return 0;
+			}
+		});
+	}
+
+	public static void sortYCoordinate(List<Point> sortedByYCoordinateList) {
+		Collections.sort(sortedByYCoordinateList, new Comparator<Point>() {
+
+			public int compare(Point p1, Point p2) {
+				if (p1.getyCoordinate() > p2.getyCoordinate())
+					return 1;
+				if (p1.getyCoordinate() < p2.getyCoordinate())
+					return -1;
+				return 0;
+			}
+		});
+	}
+
+	public static List<PointPair> bruteForceClosestPair(List<Point> points) {
+		List<PointPair> closestPairList = new ArrayList<PointPair>();
+		if (points.size() < 2)
+			return null;
+
+		else if (points.size() == 2) {
+			PointPair closestPair = new PointPair(points.get(0), points.get(1));
+			closestPairList.add(closestPair);
+			return closestPairList;
+		} else {
+			PointPair closestPair = new PointPair(points.get(0), points.get(1));
+			closestPairList.add(closestPair);
+			double closestPairDistnace = PointPair.pointPairDistance(points.get(0), points.get(1));
+			for (int i = 1; i < points.size() - 1; i++) {
+				Point p1 = points.get(i);
+				for (int j = i + 1; j < points.size(); j++) {
+					Point p2 = points.get(j);
+					double distance = PointPair.pointPairDistance(p1, p2);
+					if (distance < closestPairDistnace) {
+						closestPairList.remove(closestPair);
+						closestPair = new PointPair(p1, p2);
+						closestPairDistnace = PointPair.pointPairDistance(p1, p2);
+						closestPairList.add(closestPair);
+
+					} else if (distance == closestPairDistnace) {
+						closestPair = new PointPair(p1, p2);
+						closestPairDistnace = PointPair.pointPairDistance(p1, p2);
+						closestPairList.add(closestPair);
+					} else {
+
+					}
+				}
+				
+			}
+			return closestPairList;
+		}
+
+	}
+
+	public static List<PointPair> divideAndConqure(List<Point> sortedByXCoordinateList,
+			List<Point> sortedByYCoordinateList) {
+		int sizeOfList = sortedByXCoordinateList.size();
+		if (sizeOfList <= 3)
+			return bruteForceClosestPair(sortedByXCoordinateList);
+
+		List<PointPair> closestPair = null;
+		double closestPairDistance = 0;
+
+		int midOfXCoordinateList = sortedByXCoordinateList.size() >>> 1;
+		List<Point> temporaryYList = new ArrayList<Point>();
+		List<Point> xLeftHalf = sortedByXCoordinateList.subList(0, midOfXCoordinateList);
+		temporaryYList.addAll(xLeftHalf);
+		sortYCoordinate(temporaryYList);
+		List<PointPair> leftClosestPair = divideAndConqure(xLeftHalf, temporaryYList);
+		Double leftClosestPairDistance = 0.0;
+		if (leftClosestPair != null) {
+			leftClosestPairDistance = PointPair.pointPairDistance(leftClosestPair.get(0).point1,
+					leftClosestPair.get(0).point2);
+		}
+
+		temporaryYList.clear();
+
+		List<Point> xRightHalf = sortedByXCoordinateList.subList(midOfXCoordinateList, sortedByXCoordinateList.size());
+		temporaryYList.addAll(xRightHalf);
+		sortYCoordinate(temporaryYList);
+		List<PointPair> rightClosestPair = divideAndConqure(xRightHalf, temporaryYList);
+		Double rightClosestPairDistance = 0.0;
+		if (rightClosestPair != null) {
+			rightClosestPairDistance = PointPair.pointPairDistance(rightClosestPair.get(0).point1,
+					rightClosestPair.get(0).point2);
+		}
+
+		if (leftClosestPair != null) {
+			closestPair = leftClosestPair;
+			closestPairDistance = leftClosestPairDistance;
+		}
+
+		if (rightClosestPair != null) {
+			if (rightClosestPairDistance < leftClosestPairDistance) {
+				closestPair = rightClosestPair;
+				closestPairDistance = rightClosestPairDistance;
+			}
+		}
+
+		temporaryYList.clear();
+		List<PointPair> closestPairAfterSortingY = new ArrayList<PointPair>();
+		double middleX = xRightHalf.get(0).getxCoordinate();
+		temporaryYList.addAll(sortedByYCoordinateList);
+
+		for (int i = 0; i < temporaryYList.size() - 1; i++) {
+			Point p1 = temporaryYList.get(i);
+			for (int j = i + 1; j < temporaryYList.size(); j++) {
+				Point p2 = temporaryYList.get(j);
+				double distance = PointPair.pointPairDistance(p1, p2);
+				if (distance < closestPairDistance) {
+
+					closestPairAfterSortingY.clear();
+					closestPairAfterSortingY.add(new PointPair(p1, p2));
+					closestPairDistance = distance;
+				} else if (distance == closestPairDistance) {
+
+					closestPairAfterSortingY.add(new PointPair(p1, p2));
+					closestPairDistance = distance;
+				} else {
+
+				}
+			}
+		}
+
+		if (closestPairAfterSortingY.size() == 0) {
+			closestPairAfterSortingY = closestPair;
+		}
+		return closestPairAfterSortingY;
+
+	}
+   public static void geometryClosestPair(String inputLocation, String outputLocation)
+   {
+	   JavaSparkContext sparkContext=ClosestPair.sparkContext;
+		JavaRDD<String> data = sparkContext.textFile(inputLocation);
+		JavaRDD<PointPair> lines = data.mapPartitions(new FlatMapFunction<Iterator<String>, PointPair>() {
+
+			private static final long serialVersionUID = 1L;
+
+			public Iterable<PointPair> call(Iterator<String> rows) {
+
+				List<Point> points = new ArrayList<Point>();
+				rows.next();
+				while (rows.hasNext()) {
+					String input = rows.next();
+					String inputArr[] = input.split(",");
+					System.out.println("input" + inputArr[0] + " " + inputArr[1]);
+					Point point = new Point(Double.parseDouble(inputArr[0]), Double.parseDouble(inputArr[1]));
+					points.add(point);
+				}
+				List<Point> sortedByXCoordinateList = new ArrayList<Point>(points);
+
+				List<Point> sortedByYCoordinateList = new ArrayList<Point>(points);
+
+				sortCoordinates(sortedByXCoordinateList, sortedByYCoordinateList);
+				System.out.println(sortedByXCoordinateList.size());
+				System.out.println(sortedByYCoordinateList.size());
+				List<PointPair> closestPair = divideAndConqure(sortedByXCoordinateList, sortedByYCoordinateList);
+				return closestPair;
+
+			}
+		});
+		int index=outputLocation.lastIndexOf("/");
+		String hadoopPath=outputLocation.substring(index+1, outputLocation.length());
+		String intermediateResultpath=outputLocation+"IntermediateClosestPairResult";
+		lines.saveAsTextFile(intermediateResultpath);
+		intermediateResultpath=intermediateResultpath+"/part-00000";
+		FileToCsv.fileToCsv(intermediateResultpath, outputLocation);
+   }
+}

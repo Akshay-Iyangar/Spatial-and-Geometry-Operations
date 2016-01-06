@@ -1,0 +1,17 @@
+package edu.asu.cse512.fall;
+
+import org.apache.spark.SparkConf;
+import org.apache.spark.api.java.JavaSparkContext;
+public class Join {
+
+
+public static JavaSparkContext sparkContext;
+
+public static void main(String[] args) {
+	SparkConf sparkConf = new SparkConf().setMaster(args[0]).setAppName("Group10ClosestPair");
+	sparkContext = new JavaSparkContext(sparkConf);
+	String intermediateResultpath=args[2]+"IntermediateSpatialJoinResult";
+	SpatialJoin.spatialJoinQuery(args[0],args[1],intermediateResultpath,args[3]);
+	FileToCsv.fileToCsv(intermediateResultpath, args[2]);
+}
+}

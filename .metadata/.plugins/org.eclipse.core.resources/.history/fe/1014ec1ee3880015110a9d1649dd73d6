@@ -1,0 +1,96 @@
+package group10.SpatialOperation;
+
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+
+import org.apache.spark.SparkConf;
+import org.apache.spark.api.java.JavaRDD;
+import org.apache.spark.api.java.JavaSparkContext;
+import org.apache.spark.api.java.function.FlatMapFunction;
+
+import com.vividsolutions.jts.algorithm.ConvexHull;
+import com.vividsolutions.jts.geom.Coordinate;
+import com.vividsolutions.jts.geom.GeometryFactory;
+
+public class FarthestPoint {
+
+	public static void geometryFarthestPair(String inputLocation,String outputLocation)
+
+	{
+		JavaSparkContext sparkContext = FarthestPair.sparkContext;
+		int index=outputLocation.lastIndexOf("/");
+		String hadoopPath=outputLocation.substring(0, index);
+		String intermediateResultpath=hadoopPath+"/IntermediateHullResult";
+
+		JavaRDD<Coordinate> finalReducedRRD=ConvexHullOperation.geometryConcexHull(inputLocation, intermediateResultpath);
+		
+		/*JavaRDD<String> lines = sparkContext.textFile(intermediateResultpath);*/
+		List<Coordinate> final_array = finalReducedRRD.toArray();
+		
+		Coordinate t1, t2, final1 = null, final2 = null;
+		
+		double max_distance = 0;
+				
+		for (int i = 0;i < final_array.size();i++)
+		{
+			t1 = final_array.get(i);
+			double x1 = t1.x;
+			double y1 = t1.y;
+					
+			for (int j = 0;j < final_array.size();j++)
+			{
+				t2 = final_array.get(j);
+				double x2 = t2.x;
+				double y2 = t2.y;
+				
+				double xcor_diff = x1 - x2;
+				double xcor_square = Math.pow(xcor_diff, 2);
+				
+				double ycor_diff = y1 - y2;
+				double ycor_square = Math.pow(ycor_diff, 2);
+				
+				double distance = Math.sqrt(xcor_square + ycor_square);
+				
+				if (distance >= max_distance)
+				{
+					final1 = t1;
+					final2 = t2;
+					max_distance = distance;
+				}
+				else
+					continue;
+			}
+		}
+		
+		List<Coordinate> final_list = new ArrayList<Coordinate>();
+		final_list.add(final1);
+		final_list.add(final2);
+		JavaRDD<Coordinate> final_output= sparkContext.parallelize(final_list).repartition(1);
+		
+	    index=outputLocation.lastIndexOf("/");
+		hadoopPath=outputLocation.substring(0, index);
+		String intermediateResultpath=hadoopPath+"/IntermediateFarthestResult";
+
+		FileToCsv.deleteExistingFile(intermediateResultpath);
+		finalSortedDataRDD.saveAsTextFile(intermediateResultpath);
+		
+		FileToCsv.fileToCsv(intermediateResultpath, outputLocation);
+		sc.close();
+		
+		final_output.saveAsTextFile(args[3]);
+		sparkContext.close();
+	}
+
+	public static boolean isNumber(String s) 
+	{
+		try { 
+		      Double.parseDouble(s); 
+		   } catch(NumberFormatException e) { 
+		      return false; 
+		   }
+		   return true;
+	}
+
+}
+

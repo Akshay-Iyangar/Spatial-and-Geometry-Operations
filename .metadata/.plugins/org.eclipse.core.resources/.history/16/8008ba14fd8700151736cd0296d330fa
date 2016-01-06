@@ -1,0 +1,12 @@
+package edu.asu.cse512;
+
+import org.apache.spark.api.java.JavaSparkContext;
+
+public class App {
+	public static JavaSparkContext sparkContext;
+	
+	public static void main(String[] args) {
+		
+	}
+
+}

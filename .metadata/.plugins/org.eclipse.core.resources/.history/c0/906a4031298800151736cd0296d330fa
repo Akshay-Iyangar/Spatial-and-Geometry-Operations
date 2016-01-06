@@ -1,0 +1,20 @@
+package edu.asu.cse512;
+
+import java.net.URI;
+
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
+
+public class FileToCsv {
+public static void fileToCsv(String hdfsPath)
+{
+	URI hdfsPathUri = URI.create(hdfsPath);
+	Path pathhadoop = new Path(hdfsPathUri);
+	Path pathlocal = new Path("/home/ddsuser/ProjectDDS/sampleResult.csv/part-00000");
+	Configuration confhadoop = new Configuration();
+	FileSystem filehadoop = FileSystem.get(uri, confhadoop);
+	filehadoop.delete(pathhadoop, true);
+	filehadoop.copyFromLocalFile(pathlocal, pathhadoop);
+}
+}

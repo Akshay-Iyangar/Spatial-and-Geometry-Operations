@@ -1,0 +1,27 @@
+package edu.asu.cse512;
+
+import java.io.IOException;
+import java.net.URI;
+
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
+
+public class FileToCsv {
+public static void fileToCsv(String hdfsInputPath,String hdfsOutputPath)
+{
+	URI hdfsOutputPathUri = URI.create(hdfsOutputPath);
+	Path pathOutput = new Path(hdfsOutputPathUri);
+	Path pathlocal = new Path(hdfsInputPath);
+	Configuration confhadoop = new Configuration();
+	FileSystem filehadoop;
+	try {
+		filehadoop = FileSystem.get(hdfsOutputPathUri, confhadoop);
+		filehadoop.delete(pathOutput, true);
+		filehadoop.copyFromLocalFile(pathlocal, pathOutput);
+	} catch (IOException e) {
+		e.printStackTrace();
+	}
+	
+}
+}
